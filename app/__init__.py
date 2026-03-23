@@ -1,7 +1,7 @@
 """Fábrica da aplicação."""
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.controllers.customer_controller import router as customer_router
@@ -24,6 +24,85 @@ def create_app() -> FastAPI:
             status_code=exc.status_code,
             content={"error": detail},
         )
+    
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def home():
+        """Página inicial simples para facilitar o acesso à documentação."""
+        return """
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8" />
+                <title>API Sales</title>
+                <style>
+                    * { box-sizing: border-box; }
+                    body {
+                        font-family: Arial, sans-serif;
+                        background: #0f172a;
+                        color: #e2e8f0;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0;
+                        padding: 16px;
+                    }
+                    .card {
+                        background: #1e293b;
+                        padding: 32px;
+                        border-radius: 16px;
+                        width: 100%;
+                        max-width: 480px;
+                        text-align: center;
+                        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.4);
+                    }
+                    h1 {
+                        margin-bottom: 12px;
+                        font-size: 2rem;
+                    }
+                    p {
+                        margin-bottom: 24px;
+                        color: #cbd5f5;
+                    }
+                    .actions {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+                    .btn {
+                        text-decoration: none;
+                        padding: 14px 16px;
+                        border-radius: 10px;
+                        font-weight: bold;
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    }
+                    .btn-primary {
+                        background: #3b82f6;
+                        color: #0f172a;
+                        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.35);
+                    }
+                    .btn-secondary {
+                        background: transparent;
+                        border: 2px solid #64748b;
+                        color: #e2e8f0;
+                    }
+                    .btn:hover {
+                        transform: translateY(-2px);
+                    }
+                </style>
+            </head>
+            <body>
+                <main class="card">
+                    <h1>API Sales</h1>
+                    <p>Selecione uma opção para acessar a documentação.</p>
+                    <div class="actions">
+                        <a class="btn btn-primary" href="/docs">Teste da API (Swagger)</a>
+                        <a class="btn btn-secondary" href="/redoc">Documentação da API</a>
+                    </div>
+                </main>
+            </body>
+        </html>
+        """
 
     app.include_router(customer_router)
     return app
