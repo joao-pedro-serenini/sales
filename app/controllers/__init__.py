@@ -1,5 +1,5 @@
 """Controllers package."""
 
-from app.controllers.customer_controller import customer_bp
+from app.controllers.customer_controller import router as customer_router
 
-__all__ = ["customer_bp"]
+__all__ = ["customer_router"]

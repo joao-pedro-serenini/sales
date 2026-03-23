@@ -1,38 +1,29 @@
 """Application factory."""
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-db = SQLAlchemy()
+from app.controllers.customer_controller import router as customer_router
 
 
-def create_app(config_object=None):
-    """Create and configure the Flask application.
-
-    Args:
-        config_object: A configuration class or dotted string path.
-            Defaults to :class:`~config.Config`.
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application.
 
     Returns:
-        A configured :class:`flask.Flask` instance.
+        A configured :class:`fastapi.FastAPI` instance.
     """
-    app = Flask(__name__)
+    app = FastAPI(title="Sales API")
 
-    if config_object is None:
-        from config import Config
-        config_object = Config
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": detail},
+        )
 
-    app.config.from_object(config_object)
-
-    # Initialize extensions
-    db.init_app(app)
-
-    # Register blueprints
-    from app.controllers.customer_controller import customer_bp
-    app.register_blueprint(customer_bp)
-
-    # Create database tables
-    with app.app_context():
-        db.create_all()
-
+    app.include_router(customer_router)
     return app

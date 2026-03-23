@@ -1,10 +1,13 @@
 """Application entry point."""
 
-import os
+import uvicorn
+
 from app import create_app
+from app.database import Base, engine
+
+Base.metadata.create_all(bind=engine)
 
 app = create_app()
 
 if __name__ == "__main__":
-    debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(debug=debug)
+    uvicorn.run("run:app", host="0.0.0.0", port=8000, reload=True)
