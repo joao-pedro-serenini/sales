@@ -1,4 +1,4 @@
-"""Application configuration."""
+"""Configuração da aplicação."""
 
 import os
 

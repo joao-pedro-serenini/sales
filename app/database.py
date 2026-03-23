@@ -1,4 +1,4 @@
-"""Database engine, session, and base model."""
+"""Engine do banco de dados, sessão e modelo base."""
 
 from collections.abc import Generator
 
@@ -16,11 +16,11 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Base(DeclarativeBase):
-    """Declarative base for all ORM models."""
+    """Base declarativa para todos os modelos ORM."""
 
 
 def get_db() -> Generator[Session, None, None]:
-    """Yield a database session and ensure it is closed after use."""
+    """Fornece uma sessão do banco de dados e garante que ela seja fechada após o uso."""
     db = SessionLocal()
     try:
         yield db

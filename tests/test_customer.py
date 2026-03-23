@@ -1,4 +1,4 @@
-"""Tests for the Customer API endpoints."""
+"""Testes para os endpoints da API de clientes."""
 
 from collections.abc import Generator
 
@@ -30,7 +30,7 @@ def _override_get_db() -> Generator[Session, None, None]:
 
 @pytest.fixture()
 def app() -> Generator[FastAPI, None, None]:
-    """Create a test FastAPI application with an in-memory SQLite database."""
+    """Cria uma aplicação FastAPI de teste com banco de dados SQLite em memória."""
     Base.metadata.create_all(bind=_engine)
     application = create_app()
     application.dependency_overrides[get_db] = _override_get_db
@@ -41,7 +41,7 @@ def app() -> Generator[FastAPI, None, None]:
 
 @pytest.fixture()
 def client(app: FastAPI) -> TestClient:
-    """Return a test client for the application."""
+    """Retorna um cliente de teste para a aplicação."""
     return TestClient(app)
 
 
