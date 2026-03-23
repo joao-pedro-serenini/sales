@@ -14,6 +14,7 @@ from app.schemas.customer import (
     ErrorResponse,
 )
 from app.services.customer_service import CustomerService
+from app.services.exceptions import DuplicateError, NotFoundError, ValidationError
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -26,6 +27,19 @@ def _get_service(db: DbSession) -> CustomerService:
 
 
 ServiceDep = Annotated[CustomerService, Depends(_get_service)]
+
+
+_STATUS_MAP: dict[type[Exception], int] = {
+    ValidationError: 400,
+    DuplicateError: 400,
+    NotFoundError: 404,
+}
+
+
+def _handle_service_error(exc: ValidationError | DuplicateError | NotFoundError) -> HTTPException:
+    """Converte uma exceção de domínio em HTTPException."""
+    status = _STATUS_MAP.get(type(exc), 500)
+    return HTTPException(status_code=status, detail=exc.message)
 
 
 # ---------------------------------------------------------------------------
@@ -48,10 +62,10 @@ def create_customer(
     ``name`` e ``email`` são obrigatórios; ``phone`` e ``address`` são
     opcionais.
     """
-    customer, error = service.create_customer(body)
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-    assert customer is not None
+    try:
+        customer = service.create_customer(body)
+    except (ValidationError, DuplicateError) as exc:
+        raise _handle_service_error(exc)
     return CustomerResponse.model_validate(customer)
 
 
@@ -117,10 +131,10 @@ def update_customer(
     service: ServiceDep,
 ) -> CustomerResponse:
     """Atualiza um cliente existente."""
-    customer, error, status = service.update_customer(customer_id, body)
-    if error:
-        raise HTTPException(status_code=status, detail=error)
-    assert customer is not None
+    try:
+        customer = service.update_customer(customer_id, body)
+    except (NotFoundError, ValidationError, DuplicateError) as exc:
+        raise _handle_service_error(exc)
     return CustomerResponse.model_validate(customer)
 
 
@@ -136,6 +150,7 @@ def update_customer(
 )
 def delete_customer(customer_id: int, service: ServiceDep) -> None:
     """Exclui um cliente pelo ID."""
-    error, status = service.delete_customer(customer_id)
-    if error:
-        raise HTTPException(status_code=status, detail=error)
+    try:
+        service.delete_customer(customer_id)
+    except NotFoundError as exc:
+        raise _handle_service_error(exc)
