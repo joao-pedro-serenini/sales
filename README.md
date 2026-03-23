@@ -47,6 +47,8 @@ sales/
 ├── app/                        # Pacote da aplicação
 │   ├── __init__.py             # Fábrica do app (create_app), exception handler, rota home
 │   ├── database.py             # Engine SQLAlchemy, SessionLocal, Base e get_db()
+│   ├── templates/              # Templates HTML
+│   │   └── home.html           # Página inicial com links para /docs e /redoc
 │   ├── models/                 # Camada MODEL — definições ORM
 │   │   ├── __init__.py
 │   │   └── customer.py         # Modelo SQLAlchemy de Customer
@@ -58,6 +60,7 @@ sales/
 │   │   └── customer_repository.py
 │   ├── services/               # Camada SERVICE — lógica de negócio
 │   │   ├── __init__.py
+│   │   ├── exceptions.py       # Exceções de domínio (NotFoundError, DuplicateError, …)
 │   │   └── customer_service.py
 │   └── controllers/            # Camada CONTROLLER — rotas HTTP
 │       ├── __init__.py
@@ -92,249 +95,169 @@ sales/
 
 ### C4 — Diagrama de Contexto (Nível 1)
 
-```
-┌────────────────────────────────────┐
-│            Cliente                  │
-│   [Pessoa]                         │
-│                                    │
-│   Usuário que consome a API        │
-│   (navegador / Postman / frontend) │
-└────────────────┬───────────────────┘
-                 │
-                 │ HTTP/JSON
-                 ▼
-┌────────────────────────────────────┐
-│          Sales API                 │
-│   [Sistema]                        │
-│                                    │
-│   API RESTful para gestão de       │
-│   clientes (operações CRUD)        │
-└────────────────┬───────────────────┘
-                 │
-                 │ SQL (SQLAlchemy)
-                 ▼
-┌────────────────────────────────────┐
-│       Banco de Dados               │
-│   [SQLite — sales.db]              │
-│                                    │
-│   Armazena registros de clientes   │
-└────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Cliente["<b>Cliente</b><br><i>[Pessoa]</i><br><br>Usuário que consome a API<br>(navegador / Postman / frontend)"]
+    SalesAPI["<b>Sales API</b><br><i>[Sistema]</i><br><br>API RESTful para gestão de<br>clientes (operações CRUD)"]
+    DB[("<b>Banco de Dados</b><br><i>[SQLite — sales.db]</i><br><br>Armazena registros de clientes")]
+
+    Cliente -->|"HTTP/JSON"| SalesAPI
+    SalesAPI -->|"SQL (SQLAlchemy)"| DB
 ```
 
 ### C4 — Diagrama de Container (Nível 2)
 
-```
-┌────────────────────────────────────┐
-│            Cliente                  │
-└────────────────┬───────────────────┘
-                 │ HTTP/JSON
-                 ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Servidor (run.py)                          │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │            Uvicorn — ASGI Server (:8000)               │  │
-│  │                                                        │  │
-│  │  ┌──────────────────────────────────────────────────┐  │  │
-│  │  │        Aplicação FastAPI (create_app)             │  │  │
-│  │  │                                                  │  │  │
-│  │  │  • Exception Handler global                      │  │  │
-│  │  │  • Rota GET / (Home — links para docs)           │  │  │
-│  │  │  • Customer Router (/customers)                  │  │  │
-│  │  │  • Swagger UI (/docs) · ReDoc (/redoc)           │  │  │
-│  │  └──────────────────────────────────────────────────┘  │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌──────────────┐      ┌──────────────────────────────────┐  │
-│  │  config.py   │─────▶│          database.py              │  │
-│  │ DATABASE_URL │      │  engine · SessionLocal · get_db() │  │
-│  └──────────────┘      └────────────────┬─────────────────┘  │
-│                                         │                    │
-└─────────────────────────────────────────┼────────────────────┘
-                                          │ SQL
-                                          ▼
-                             ┌────────────────────────┐
-                             │   SQLite (sales.db)    │
-                             └────────────────────────┘
+```mermaid
+flowchart TD
+    Cliente["Cliente"]
+    Cliente -->|"HTTP/JSON"| AppContent
+
+    subgraph Servidor["Servidor (run.py)"]
+        subgraph Uvicorn["Uvicorn — ASGI Server (:8000)"]
+            subgraph FastAPIApp["Aplicação FastAPI (create_app)"]
+                AppContent["• Exception Handler global<br>• Rota GET / (Home — links para docs)<br>• Customer Router (/customers)<br>• Swagger UI (/docs) · ReDoc (/redoc)"]
+            end
+        end
+        Config["config.py<br>DATABASE_URL"] --> DatabasePy["database.py<br>engine · SessionLocal · get_db()"]
+    end
+
+    DatabasePy -->|"SQL"| SQLite[("SQLite (sales.db)")]
 ```
 
 ### C4 — Diagrama de Componentes (Nível 3)
 
-```
-Requisição HTTP
-       │
-       ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    Aplicação FastAPI                              │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │               App Factory (app/__init__.py)                │  │
-│  │  • Exception Handler (formata erros em {"error": "..."})   │  │
-│  │  • Rota GET / (página inicial HTML com links /docs /redoc) │  │
-│  │  • Registra o Customer Router                              │  │
-│  └─────────────────────────┬──────────────────────────────────┘  │
-│                            │                                     │
-│                            ▼                                     │
-│  ┌──────────────────┐    ┌────────────────────────────┐          │
-│  │  Controller      │◀───│  Schemas (Pydantic)        │          │
-│  │  (APIRouter)     │    │                            │          │
-│  │                  │    │  CustomerCreate  (entrada)  │          │
-│  │ POST /customers  │    │  CustomerUpdate  (entrada)  │          │
-│  │ GET  /customers  │    │  CustomerResponse (saída)   │          │
-│  │ GET  /count      │    │  CountResponse   (saída)    │          │
-│  │ GET  /{id}       │    │  ErrorResponse   (saída)    │          │
-│  │ GET  /name/{n}   │    └────────────────────────────┘          │
-│  │ PUT  /{id}       │                                            │
-│  │ DELETE /{id}     │                                            │
-│  └────────┬─────────┘                                            │
-│           │ Depends(_get_service)                                │
-│           ▼                                                      │
-│  ┌──────────────────────┐                                        │
-│  │  Service             │                                        │
-│  │  (lógica de negócio) │                                        │
-│  │                      │                                        │
-│  │  • strip / validação │                                        │
-│  │  • trata duplicatas  │                                        │
-│  │  • orquestra CRUD    │                                        │
-│  └────────┬─────────────┘                                        │
-│           │                                                      │
-│           ▼                                                      │
-│  ┌──────────────────────┐    ┌──────────────────────────────┐    │
-│  │  Repository          │───▶│  Model (ORM)                 │    │
-│  │  (acesso a dados)    │    │                              │    │
-│  │                      │    │  Customer                     │    │
-│  │  • add / query       │    │  ├ id      : Integer (PK)    │    │
-│  │  • commit / refresh  │    │  ├ name    : String(100)     │    │
-│  │  • delete            │    │  ├ email   : String(150) UQ  │    │
-│  └──────────┬───────────┘    │  ├ phone   : String(20)      │    │
-│             │                │  └ address : String(255)     │    │
-│     Depends(get_db)          └──────────────────────────────┘    │
-│             │                                                    │
-│             ▼                                                    │
-│  ┌────────────────────────────────────────────┐                  │
-│  │  database.py                                │                  │
-│  │  engine · SessionLocal · Base · get_db()    │                  │
-│  └──────────────────────┬─────────────────────┘                  │
-│                         │                                        │
-└─────────────────────────┼────────────────────────────────────────┘
-                          │ SQL
-                          ▼
-                 ┌──────────────────┐
-                 │ SQLite (sales.db) │
-                 └──────────────────┘
+```mermaid
+flowchart TD
+    Req(["Requisição HTTP"])
+    Req --> AppFactory
+
+    subgraph App["Aplicação FastAPI"]
+        AppFactory["<b>App Factory</b> — app/__init__.py<br>• Exception Handler<br>• Rota GET /<br>• Registra o Customer Router"]
+        AppFactory --> Controller
+
+        Schemas["<b>Schemas (Pydantic)</b><br>CustomerCreate (entrada)<br>CustomerUpdate (entrada)<br>CustomerResponse (saída)<br>CountResponse (saída)<br>ErrorResponse (saída)"]
+        Schemas -.-> Controller
+
+        Controller["<b>Controller</b> — APIRouter<br>POST /customers · GET /customers<br>GET /customers/count · GET /customers/:id<br>GET /customers/name/:name<br>PUT /customers/:id · DELETE /customers/:id"]
+
+        Controller -->|"Depends(_get_service)"| Service
+
+        Service["<b>Service</b> — lógica de negócio<br>• strip / validação<br>• trata duplicatas<br>• orquestra CRUD"]
+        Service --> Repository
+
+        Repository["<b>Repository</b> — acesso a dados<br>• add / query<br>• commit / refresh<br>• delete"]
+        Model["<b>Model (ORM)</b> — Customer<br>id : Integer (PK) · name : String(100)<br>email : String(150) UQ · phone : String(20)<br>address : String(255)"]
+
+        Repository -->|usa| Model
+        Repository -->|"Depends(get_db)"| DatabasePy
+
+        DatabasePy["<b>database.py</b><br>engine · SessionLocal · Base · get_db()"]
+    end
+
+    DatabasePy -->|"SQL"| SQLite[("SQLite (sales.db)")]
 ```
 
 ### UML — Diagrama de Classes
 
-```
-┌──────────────────────────────────────────┐
-│         Schemas Pydantic                  │
-├──────────────────────────────────────────┤
-│ CustomerCreate                            │
-│  + name    : str                          │
-│  + email   : str                          │
-│  + phone   : str | None                   │
-│  + address : str | None                   │
-├──────────────────────────────────────────┤
-│ CustomerUpdate                            │
-│  + name    : str | None                   │
-│  + email   : str | None                   │
-│  + phone   : str | None                   │
-│  + address : str | None                   │
-├──────────────────────────────────────────┤
-│ CustomerResponse (from_attributes=True)   │
-│  + id      : int                          │
-│  + name    : str                          │
-│  + email   : str                          │
-│  + phone   : str | None                   │
-│  + address : str | None                   │
-├──────────────────────────────────────────┤
-│ CountResponse  { count : int }            │
-│ ErrorResponse  { error : str }            │
-└────────────────────┬─────────────────────┘
-                valida │
-                     ▼
-┌──────────────────────────────────┐
-│  CustomerController (APIRouter)  │
-├──────────────────────────────────┤
-│ POST   /customers                │
-│ GET    /customers                │
-│ GET    /customers/count          │
-│ GET    /customers/{id}           │
-│ GET    /customers/name/{name}    │
-│ PUT    /customers/{id}           │
-│ DELETE /customers/{id}           │
-└──────────────────┬───────────────┘
-              usa  │
-                   ▼
-┌──────────────────────────────────┐
-│       CustomerService            │
-├──────────────────────────────────┤
-│ + create_customer(data)          │
-│ + update_customer(id, data)      │
-│ + delete_customer(id)            │
-│ + get_all_customers()            │
-│ + get_customer_by_id(id)         │
-│ + get_customers_by_name(name)    │
-│ + count_customers()              │
-└──────────────────┬───────────────┘
-              usa  │
-                   ▼
-┌──────────────────────────────────┐
-│      CustomerRepository          │
-├──────────────────────────────────┤
-│ + create(name, email, ...)       │
-│ + find_all()       : list        │
-│ + find_by_id(id)   : Customer    │
-│ + find_by_name(n)  : list        │
-│ + count()          : int         │
-│ + update(c, ...)   : Customer    │
-│ + delete(c)        : None        │
-└──────────────────┬───────────────┘
-              usa  │
-                   ▼
-┌─────────────────────────────────┐
-│          Customer (Model)       │
-├─────────────────────────────────┤
-│ + id       : Integer (PK)      │
-│ + name     : String(100)       │
-│ + email    : String(150) UNIQUE│
-│ + phone    : String(20)        │
-│ + address  : String(255)       │
-└─────────────────────────────────┘
+```mermaid
+classDiagram
+    direction TB
+
+    class CustomerCreate {
+        +name : str
+        +email : str
+        +phone : str | None
+        +address : str | None
+    }
+
+    class CustomerUpdate {
+        +name : str | None
+        +email : str | None
+        +phone : str | None
+        +address : str | None
+    }
+
+    class CustomerResponse {
+        <<from_attributes=True>>
+        +id : int
+        +name : str
+        +email : str
+        +phone : str | None
+        +address : str | None
+    }
+
+    class CountResponse {
+        +count : int
+    }
+
+    class ErrorResponse {
+        +error : str
+    }
+
+    class CustomerController {
+        <<APIRouter>>
+        POST /customers
+        GET /customers
+        GET /customers/count
+        GET /customers/:id
+        GET /customers/name/:name
+        PUT /customers/:id
+        DELETE /customers/:id
+    }
+
+    class CustomerService {
+        +create_customer(data)
+        +update_customer(id, data)
+        +delete_customer(id)
+        +get_all_customers()
+        +get_customer_by_id(id)
+        +get_customers_by_name(name)
+        +count_customers()
+    }
+
+    class CustomerRepository {
+        +create(name, email, ...) Customer
+        +find_all() list
+        +find_by_id(id) Customer
+        +find_by_name(n) list
+        +count() int
+        +update(c, ...) Customer
+        +delete(c) None
+    }
+
+    class Customer {
+        <<Model>>
+        +id : Integer PK
+        +name : String~100~
+        +email : String~150~ UNIQUE
+        +phone : String~20~
+        +address : String~255~
+    }
+
+    CustomerCreate ..> CustomerController : valida
+    CustomerUpdate ..> CustomerController : valida
+    CustomerResponse ..> CustomerController : serializa
+    CountResponse ..> CustomerController : serializa
+    ErrorResponse ..> CustomerController : serializa
+    CustomerController --> CustomerService : usa
+    CustomerService --> CustomerRepository : usa
+    CustomerRepository --> Customer : usa
 ```
 
 ### Fluxo de uma Requisição
 
-```
-Requisição HTTP (ex: POST /customers {"name": "Ana", "email": "ana@ex.com"})
-     │
-     ▼
-[Uvicorn]        ──── servidor ASGI recebe a conexão e encaminha ao FastAPI
-     │
-     ▼
-[App Factory]    ──── exception handler está registrado para capturar erros
-     │
-     ▼
-[Schema]         ──── Pydantic valida o corpo da requisição (CustomerCreate)
-     │
-     ▼
-[Controller]     ──── extrai dados validados, obtém Service via Depends
-     │
-     ▼
-[Service]        ──── aplica regras de negócio (strip, campos obrigatórios, duplicatas)
-     │
-     ▼
-[Repository]     ──── executa operação ORM (add + commit + refresh)
-     │
-     ▼
-[Model / DB]     ──── SQLAlchemy persiste no SQLite via engine (database.py)
-     │
-     ▼ (caminho inverso)
-[Schema]         ──── CustomerResponse serializa o modelo ORM para JSON
-     │
-     ▼
-Resposta HTTP (JSON — status 201)
+```mermaid
+flowchart TD
+    Req(["Requisição HTTP<br>(ex: POST /customers)"])
+    Req --> Uvicorn["<b>Uvicorn</b><br>servidor ASGI recebe a conexão<br>e encaminha ao FastAPI"]
+    Uvicorn --> Factory["<b>App Factory</b><br>exception handler registrado<br>para capturar erros"]
+    Factory --> SchemaIn["<b>Schema</b><br>Pydantic valida o corpo da<br>requisição (CustomerCreate)"]
+    SchemaIn --> Ctrl["<b>Controller</b><br>extrai dados validados,<br>obtém Service via Depends"]
+    Ctrl --> Svc["<b>Service</b><br>aplica regras de negócio<br>(strip, campos obrigatórios, duplicatas)"]
+    Svc --> Repo["<b>Repository</b><br>executa operação ORM<br>(add + commit + refresh)"]
+    Repo --> ModelDB["<b>Model / DB</b><br>SQLAlchemy persiste no SQLite<br>via engine (database.py)"]
+    ModelDB -.->|"caminho inverso"| SchemaOut["<b>Schema</b><br>CustomerResponse serializa<br>o modelo ORM para JSON"]
+    SchemaOut --> Resp(["Resposta HTTP<br>(JSON — status 201)"])
 ```
 
 ---
