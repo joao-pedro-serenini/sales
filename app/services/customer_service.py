@@ -1,10 +1,12 @@
 """Serviço de clientes — camada de lógica de negócio."""
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.customer import Customer
 from app.repositories.customer_repository import CustomerRepository
 from app.schemas.customer import CustomerCreate, CustomerUpdate
+from app.services.exceptions import DuplicateError, NotFoundError, ValidationError
 
 
 class CustomerService:
@@ -22,69 +24,72 @@ class CustomerService:
     # Write operations
     # ------------------------------------------------------------------
 
-    def create_customer(
-        self, data: CustomerCreate
-    ) -> tuple[Customer | None, str | None]:
+    def create_customer(self, data: CustomerCreate) -> Customer:
         """Valida ``data`` e persiste um novo cliente.
 
-        Retorna:
-            Uma tupla ``(customer, error)``. Em caso de sucesso, ``error``
-            é ``None``; em caso de falha, ``customer`` é ``None``.
+        Raises:
+            ValidationError: Se campos obrigatórios estiverem vazios.
+            DuplicateError: Se o e-mail já estiver cadastrado.
         """
         name = data.name.strip()
         email = data.email.strip()
         if not name:
-            return None, "The 'name' field is required."
+            raise ValidationError("The 'name' field is required.")
         if not email:
-            return None, "The 'email' field is required."
+            raise ValidationError("The 'email' field is required.")
         phone = data.phone.strip() if data.phone else None
         address = data.address.strip() if data.address else None
         try:
-            customer = self._repo.create(
+            return self._repo.create(
                 name=name, email=email, phone=phone, address=address
             )
-        except Exception:
-            return None, f"A customer with e-mail '{email}' already exists."
-        return customer, None
+        except IntegrityError:
+            raise DuplicateError(f"A customer with e-mail '{email}' already exists.")
 
-    def update_customer(
-        self, customer_id: int, data: CustomerUpdate
-    ) -> tuple[Customer | None, str | None, int]:
+    def update_customer(self, customer_id: int, data: CustomerUpdate) -> Customer:
         """Atualiza um cliente existente com os campos presentes em ``data``.
 
-        Retorna:
-            Uma tupla ``(customer, error, status_code)``.
+        Raises:
+            NotFoundError: Se o cliente não for encontrado.
+            ValidationError: Se campos obrigatórios ficarem vazios após strip.
+            DuplicateError: Se o e-mail já estiver cadastrado por outro cliente.
         """
         customer = self._repo.find_by_id(customer_id)
         if customer is None:
-            return None, f"Customer with id {customer_id} not found.", 404
+            raise NotFoundError(f"Customer with id {customer_id} not found.")
         name = data.name
         email = data.email
         phone = data.phone
         address = data.address
         if name is not None:
-            name = name.strip() or None
+            name = name.strip() if name else None
+            if not name:
+                raise ValidationError("The 'name' field cannot be empty.")
         if email is not None:
-            email = email.strip() or None
+            email = email.strip() if email else None
+            if not email:
+                raise ValidationError("The 'email' field cannot be empty.")
+        if phone is not None:
+            phone = phone.strip() or None
+        if address is not None:
+            address = address.strip() or None
         try:
-            customer = self._repo.update(
+            return self._repo.update(
                 customer, name=name, email=email, phone=phone, address=address
             )
-        except Exception:
-            return None, f"A customer with e-mail '{email}' already exists.", 400
-        return customer, None, 200
+        except IntegrityError:
+            raise DuplicateError(f"A customer with e-mail '{email}' already exists.")
 
-    def delete_customer(self, customer_id: int) -> tuple[str | None, int]:
+    def delete_customer(self, customer_id: int) -> None:
         """Exclui um cliente pela chave primária.
 
-        Retorna:
-            Uma tupla ``(error, status_code)``.
+        Raises:
+            NotFoundError: Se o cliente não for encontrado.
         """
         customer = self._repo.find_by_id(customer_id)
         if customer is None:
-            return f"Customer with id {customer_id} not found.", 404
+            raise NotFoundError(f"Customer with id {customer_id} not found.")
         self._repo.delete(customer)
-        return None, 204
 
     # ------------------------------------------------------------------
     # Read operations
