@@ -1,4 +1,4 @@
-"""Customer model."""
+"""Modelo de cliente."""
 
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -7,14 +7,14 @@ from app.database import Base
 
 
 class Customer(Base):
-    """Represents a customer of the store.
+    """Representa um cliente da loja.
 
-    Attributes:
-        id: Primary key, auto-incremented unique identifier.
-        name: Full name of the customer.
-        email: Unique e-mail address of the customer.
-        phone: Phone number of the customer.
-        address: Mailing address of the customer.
+    Atributos:
+        id: Chave primária, identificador único auto-incrementado.
+        name: Nome completo do cliente.
+        email: Endereço de e-mail único do cliente.
+        phone: Número de telefone do cliente.
+        address: Endereço postal do cliente.
     """
 
     __tablename__ = "customers"

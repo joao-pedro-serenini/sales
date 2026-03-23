@@ -1,114 +1,115 @@
-# Sales — Customer API
+# Sales — API de Clientes
 
-RESTful API following the **MVC** pattern that implements basic CRUD operations for the customers of a store.
-
----
-
-## Table of Contents
-
-1. [Requirements](#requirements)
-2. [Getting Started](#getting-started)
-3. [Folder Structure](#folder-structure)
-4. [Architecture](#architecture)
-5. [API Reference](#api-reference)
-6. [Running Tests](#running-tests)
+API RESTful seguindo o padrão **MVC** que implementa operações CRUD básicas para os clientes de uma loja.
 
 ---
 
-## Requirements
+## Índice
+
+1. [Requisitos](#requisitos)
+2. [Primeiros Passos](#primeiros-passos)
+3. [Estrutura de Pastas](#estrutura-de-pastas)
+4. [Arquitetura](#arquitetura)
+5. [Referência da API](#referência-da-api)
+6. [Executando os Testes](#executando-os-testes)
+
+---
+
+## Requisitos
 
 - Python 3.10+
 - pip
 
 ---
 
-## Getting Started
+## Primeiros Passos
 
 ```bash
-# 1. Create and activate a virtual environment
+# 1. Crie e ative um ambiente virtual
 python -m venv .venv
 source .venv/bin/activate       # Windows: .venv\Scripts\activate
 
-# 2. Install dependencies
+# 2. Instale as dependências
 pip install -r requirements.txt
 
-# 3. Start the server (defaults to http://127.0.0.1:5000)
+# 3. Inicie o servidor (padrão: http://127.0.0.1:5000)
 python run.py
 ```
 
-The SQLite database file (`sales.db`) is created automatically in the project root on first run.
+O arquivo de banco de dados SQLite (`sales.db`) é criado automaticamente na raiz do projeto na primeira execução.
 
 ---
 
-## Folder Structure
+## Estrutura de Pastas
 
 ```
 sales/
-├── app/                        # Application package
-│   ├── __init__.py             # App factory (create_app) + db instance
-│   ├── models/                 # MODEL layer — data structures
+├── app/                        # Pacote da aplicação
+│   ├── __init__.py             # Fábrica do app (create_app) + instância do db
+│   ├── models/                 # Camada MODEL — estruturas de dados
 │   │   ├── __init__.py
-│   │   └── customer.py         # Customer SQLAlchemy model
-│   ├── repositories/           # Data-access layer (ORM queries)
+│   │   └── customer.py         # Modelo SQLAlchemy de Customer
+│   ├── repositories/           # Camada de acesso a dados (consultas ORM)
 │   │   ├── __init__.py
 │   │   └── customer_repository.py
-│   ├── services/               # SERVICE layer — business logic
+│   ├── services/               # Camada SERVICE — lógica de negócio
 │   │   ├── __init__.py
 │   │   └── customer_service.py
-│   └── controllers/            # CONTROLLER layer — HTTP routes
+│   └── controllers/            # Camada CONTROLLER — rotas HTTP
 │       ├── __init__.py
-│       └── customer_controller.py  # Flask Blueprint /customers
-├── tests/                      # Automated test suite (pytest)
+│       └── customer_controller.py  # FastAPI Blueprint /customers
+├── tests/                      # Suíte de testes automatizados (pytest)
 │   ├── __init__.py
 │   └── test_customer.py
-├── config.py                   # Configuration classes (default + testing)
-├── requirements.txt            # Python dependencies
-├── run.py                      # Entry point
+├── config.py                   # Classes de configuração (padrão + testes)
+├── requirements.txt            # Dependências Python
+├── run.py                      # Ponto de entrada
 └── README.md
 ```
 
-### Component Roles (MVC)
+### Responsabilidades dos Componentes (MVC)
 
-| Layer | Folder | Responsibility |
+| Camada | Pasta | Responsabilidade |
 |---|---|---|
-| **Model** | `app/models/` | Defines the data schema (SQLAlchemy ORM). Provides `to_dict()` for serialisation. |
-| **View** | JSON responses | Flask returns JSON — there is no HTML template layer. |
-| **Controller** | `app/controllers/` | Receives HTTP requests, delegates to the Service, and returns HTTP responses. |
-| **Service** | `app/services/` | Contains business rules: input validation, error handling, orchestration. |
-| **Repository** | `app/repositories/` | Abstracts all database queries. The only layer that imports `db`. |
+| **Model** | `app/models/` | Define o esquema de dados (SQLAlchemy ORM). Fornece `to_dict()` para serialização. |
+| **View** | Respostas JSON | O FastAPI retorna JSON — não há camada de templates HTML. |
+| **Controller** | `app/controllers/` | Recebe requisições HTTP, delega ao Service e retorna respostas HTTP. |
+| **Service** | `app/services/` | Contém regras de negócio: validação de entrada, tratamento de erros, orquestração. |
+| **Repository** | `app/repositories/` | Abstrai todas as consultas ao banco de dados. Única camada que importa `db`. |
 
-> The Repository pattern is added between the Service and Model to keep the Service layer independent of the ORM implementation.
+> O padrão Repository é adicionado entre o Service e o Model para manter a camada de Service independente da implementação do ORM.
 
 ---
 
-## Architecture
+## Arquitetura
 
-### C4 — Context Diagram
+### C4 — Diagrama de Contexto
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                        Client                           │
-│              (browser / Postman / frontend)             │
+│                        Cliente                          │
+│              (navegador / Postman / frontend)           │
 └───────────────────────────┬─────────────────────────────┘
                             │  HTTP/JSON
                             ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Sales API (Flask)                    │
+┌──────────────────────────────────────────────────────── ┐
+│                    Sales API (FastAPI)                  │
 │                                                         │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────┐  │
+│  ┌──────────────┐     ┌──────────────┐    ┌──────────┐  │
 │  │  Controller  │───▶│   Service    │───▶│  Repo.   │  │
-│  │  (routes)    │    │ (biz logic)  │    │  (ORM)   │  │
-│  └──────────────┘    └──────────────┘    └────┬─────┘  │
-│                                               │        │
-└───────────────────────────────────────────────┼────────┘
-                                                │ SQL
-                                                ▼
+│  │  (rotas)     │     │ (neg./lóg.)  │    │  (ORM)   │  │
+│  └──────────────┘     └──────────────┘    └────┬─────┘  │
+│                                                │        │
+└─────────────────────────────────────────────── ┼────────┘
+                                                 │ SQL
+                                                 ▼
                                     ┌───────────────────┐
-                                    │   SQLite Database  │
+                                    │  Banco de Dados   │
+                                    │     SQLite        │
                                     └───────────────────┘
 ```
 
-### UML — Class Diagram
+### UML — Diagrama de Classes
 
 ```
 ┌─────────────────────────────────┐
@@ -122,7 +123,7 @@ sales/
 ├─────────────────────────────────┤
 │ + to_dict() : dict              │
 └─────────────────────────────────┘
-           ▲ uses
+           ▲ usa
            │
 ┌──────────────────────────────────┐
 │       CustomerRepository         │
@@ -135,7 +136,7 @@ sales/
 │ + update(c,...)    :Customer     │
 │ + delete(c)        :None         │
 └──────────────────────────────────┘
-           ▲ uses
+           ▲ usa
            │
 ┌──────────────────────────────────┐
 │        CustomerService           │
@@ -148,7 +149,7 @@ sales/
 │ + get_customers_by_name(name)    │
 │ + count_customers()              │
 └──────────────────────────────────┘
-           ▲ uses
+           ▲ usa
            │
 ┌──────────────────────────────────┐
 │    CustomerController (Blueprint)│
@@ -163,34 +164,34 @@ sales/
 └──────────────────────────────────┘
 ```
 
-### Request Flow
+### Fluxo de uma Requisição
 
 ```
-HTTP Request
+Requisição HTTP
      │
      ▼
-[Controller] ──── validates HTTP, extracts payload
+[Controller] ──── valida o HTTP, extrai o payload
      │
      ▼
-[Service]    ──── validates business rules
+[Service]    ──── valida as regras de negócio
      │
      ▼
-[Repository] ──── executes ORM query
+[Repository] ──── executa a consulta ORM
      │
      ▼
-[Model / DB] ──── persists or fetches data
+[Model / DB] ──── persiste ou busca dados
      │
-     ▼ (reversed path)
-HTTP Response (JSON)
+     ▼ (caminho inverso)
+Resposta HTTP (JSON)
 ```
 
 ---
 
-## API Reference
+## Referência da API
 
-Base URL: `http://127.0.0.1:5000`
+URL Base: `http://127.0.0.1:5000`
 
-### Customer Object
+### Objeto Customer
 
 ```json
 {
@@ -204,62 +205,62 @@ Base URL: `http://127.0.0.1:5000`
 
 ### Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/customers` | Create a new customer |
-| `GET` | `/customers` | Return all customers |
-| `GET` | `/customers/count` | Return total number of customers |
-| `GET` | `/customers/{id}` | Return customer by ID |
-| `GET` | `/customers/name/{name}` | Return customers matching name |
-| `PUT` | `/customers/{id}` | Update an existing customer |
-| `DELETE` | `/customers/{id}` | Delete a customer |
+| Método | Caminho | Descrição |
+|--------|---------|-----------|
+| `POST` | `/customers` | Criar um novo cliente |
+| `GET` | `/customers` | Retornar todos os clientes |
+| `GET` | `/customers/count` | Retornar o número total de clientes |
+| `GET` | `/customers/{id}` | Retornar cliente por ID |
+| `GET` | `/customers/name/{name}` | Retornar clientes que correspondem ao nome |
+| `PUT` | `/customers/{id}` | Atualizar um cliente existente |
+| `DELETE` | `/customers/{id}` | Excluir um cliente |
 
 #### POST `/customers`
 
-**Body** (JSON):
+**Corpo** (JSON):
 
 ```json
 {
-  "name":    "João Silva",        // required
-  "email":   "joao@example.com", // required, unique
-  "phone":   "11999990000",      // optional
-  "address": "Rua das Flores, 1" // optional
+  "name":    "João Silva",        // obrigatório
+  "email":   "joao@example.com", // obrigatório, único
+  "phone":   "11999990000",      // opcional
+  "address": "Rua das Flores, 1" // opcional
 }
 ```
 
-Responses: `201 Created` | `400 Bad Request`
+Respostas: `201 Created` | `400 Bad Request`
 
 #### GET `/customers`
 
-Responses: `200 OK` — array of customer objects.
+Respostas: `200 OK` — array de objetos de cliente.
 
 #### GET `/customers/count`
 
-Responses: `200 OK` — `{"count": 42}`
+Respostas: `200 OK` — `{"count": 42}`
 
 #### GET `/customers/{id}`
 
-Responses: `200 OK` | `404 Not Found`
+Respostas: `200 OK` | `404 Not Found`
 
 #### GET `/customers/name/{name}`
 
-Case-insensitive substring search.
+Busca por substring sem distinção entre maiúsculas e minúsculas.
 
-Responses: `200 OK` — array of matching customer objects.
+Respostas: `200 OK` — array de objetos de cliente correspondentes.
 
 #### PUT `/customers/{id}`
 
-**Body** (JSON): any subset of `name`, `email`, `phone`, `address`.
+**Corpo** (JSON): qualquer subconjunto de `name`, `email`, `phone`, `address`.
 
-Responses: `200 OK` | `400 Bad Request` | `404 Not Found`
+Respostas: `200 OK` | `400 Bad Request` | `404 Not Found`
 
 #### DELETE `/customers/{id}`
 
-Responses: `204 No Content` | `404 Not Found`
+Respostas: `204 No Content` | `404 Not Found`
 
 ---
 
-## Running Tests
+## Executando os Testes
 
 ```bash
 pip install pytest

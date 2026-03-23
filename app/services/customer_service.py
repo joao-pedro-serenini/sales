@@ -1,4 +1,4 @@
-"""Customer service — business logic layer."""
+"""Serviço de clientes — camada de lógica de negócio."""
 
 from sqlalchemy.orm import Session
 
@@ -8,11 +8,11 @@ from app.schemas.customer import CustomerCreate, CustomerUpdate
 
 
 class CustomerService:
-    """Encapsulates the business rules for the Customer resource.
+    """Encapsula as regras de negócio do recurso Customer.
 
-    The service delegates all persistence operations to
+    O serviço delega todas as operações de persistência ao
     :class:`~app.repositories.customer_repository.CustomerRepository`
-    and applies validation / transformation logic before and after.
+    e aplica lógica de validação/transformação antes e depois.
     """
 
     def __init__(self, session: Session) -> None:
@@ -25,11 +25,11 @@ class CustomerService:
     def create_customer(
         self, data: CustomerCreate
     ) -> tuple[Customer | None, str | None]:
-        """Validate ``data`` and persist a new customer.
+        """Valida ``data`` e persiste um novo cliente.
 
-        Returns:
-            A ``(customer, error)`` tuple.  On success ``error`` is
-            ``None``; on failure ``customer`` is ``None``.
+        Retorna:
+            Uma tupla ``(customer, error)``. Em caso de sucesso, ``error``
+            é ``None``; em caso de falha, ``customer`` é ``None``.
         """
         name = data.name.strip()
         email = data.email.strip()
@@ -50,10 +50,10 @@ class CustomerService:
     def update_customer(
         self, customer_id: int, data: CustomerUpdate
     ) -> tuple[Customer | None, str | None, int]:
-        """Update an existing customer with the fields present in ``data``.
+        """Atualiza um cliente existente com os campos presentes em ``data``.
 
-        Returns:
-            A ``(customer, error, status_code)`` tuple.
+        Retorna:
+            Uma tupla ``(customer, error, status_code)``.
         """
         customer = self._repo.find_by_id(customer_id)
         if customer is None:
@@ -75,10 +75,10 @@ class CustomerService:
         return customer, None, 200
 
     def delete_customer(self, customer_id: int) -> tuple[str | None, int]:
-        """Delete a customer by primary key.
+        """Exclui um cliente pela chave primária.
 
-        Returns:
-            A ``(error, status_code)`` tuple.
+        Retorna:
+            Uma tupla ``(error, status_code)``.
         """
         customer = self._repo.find_by_id(customer_id)
         if customer is None:
@@ -91,17 +91,17 @@ class CustomerService:
     # ------------------------------------------------------------------
 
     def get_all_customers(self) -> list[Customer]:
-        """Return all customers."""
+        """Retorna todos os clientes."""
         return self._repo.find_all()
 
     def get_customer_by_id(self, customer_id: int) -> Customer | None:
-        """Return a single customer by primary key."""
+        """Retorna um único cliente pela chave primária."""
         return self._repo.find_by_id(customer_id)
 
     def get_customers_by_name(self, name: str) -> list[Customer]:
-        """Return customers whose name contains ``name`` (case-insensitive)."""
+        """Retorna clientes cujo nome contém ``name`` (sem distinção de maiúsculas/minúsculas)."""
         return self._repo.find_by_name(name)
 
     def count_customers(self) -> int:
-        """Return the total number of customer records."""
+        """Retorna o número total de registros de clientes."""
         return self._repo.count()

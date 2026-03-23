@@ -1,9 +1,8 @@
-"""Customer controller — HTTP layer (FastAPI Router)."""
+"""Controller de clientes — camada HTTP (FastAPI Router)."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -22,7 +21,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def _get_service(db: DbSession) -> CustomerService:
-    """Dependency that provides a :class:`CustomerService` with a DB session."""
+    """Dependência que fornece um :class:`CustomerService` com uma sessão do banco."""
     return CustomerService(db)
 
 
@@ -44,10 +43,10 @@ def create_customer(
     body: CustomerCreate,
     service: ServiceDep,
 ) -> CustomerResponse:
-    """Create a new customer.
+    """Cria um novo cliente.
 
-    ``name`` and ``email`` are required; ``phone`` and ``address`` are
-    optional.
+    ``name`` e ``email`` são obrigatórios; ``phone`` e ``address`` são
+    opcionais.
     """
     customer, error = service.create_customer(body)
     if error:
@@ -63,20 +62,20 @@ def create_customer(
 
 @router.get("", response_model=list[CustomerResponse])
 def find_all(service: ServiceDep) -> list[CustomerResponse]:
-    """Return all customers."""
+    """Retorna todos os clientes."""
     customers = service.get_all_customers()
     return [CustomerResponse.model_validate(c) for c in customers]
 
 
 @router.get("/count", response_model=CountResponse)
 def count(service: ServiceDep) -> CountResponse:
-    """Return the total number of customers."""
+    """Retorna o número total de clientes."""
     return CountResponse(count=service.count_customers())
 
 
 @router.get("/name/{name}", response_model=list[CustomerResponse])
 def find_by_name(name: str, service: ServiceDep) -> list[CustomerResponse]:
-    """Return customers whose name contains *name* (case-insensitive)."""
+    """Retorna clientes cujo nome contém *name* (sem distinção de maiúsculas/minúsculas)."""
     customers = service.get_customers_by_name(name)
     return [CustomerResponse.model_validate(c) for c in customers]
 
@@ -92,7 +91,7 @@ def find_by_name(name: str, service: ServiceDep) -> list[CustomerResponse]:
     responses={404: {"model": ErrorResponse}},
 )
 def find_by_id(customer_id: int, service: ServiceDep) -> CustomerResponse:
-    """Return a single customer by ID."""
+    """Retorna um único cliente pelo ID."""
     customer = service.get_customer_by_id(customer_id)
     if customer is None:
         raise HTTPException(
@@ -117,7 +116,7 @@ def update_customer(
     body: CustomerUpdate,
     service: ServiceDep,
 ) -> CustomerResponse:
-    """Update an existing customer."""
+    """Atualiza um cliente existente."""
     customer, error, status = service.update_customer(customer_id, body)
     if error:
         raise HTTPException(status_code=status, detail=error)
@@ -136,7 +135,7 @@ def update_customer(
     responses={404: {"model": ErrorResponse}},
 )
 def delete_customer(customer_id: int, service: ServiceDep) -> None:
-    """Delete a customer by ID."""
+    """Exclui um cliente pelo ID."""
     error, status = service.delete_customer(customer_id)
     if error:
         raise HTTPException(status_code=status, detail=error)

@@ -1,4 +1,4 @@
-"""Repositories package."""
+"""Pacote de repositórios."""
 
 from app.repositories.customer_repository import CustomerRepository
 

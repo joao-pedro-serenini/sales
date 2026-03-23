@@ -1,4 +1,4 @@
-"""Models package."""
+"""Pacote de modelos."""
 
 from app.models.customer import Customer
 

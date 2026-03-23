@@ -1,4 +1,4 @@
-"""Application entry point."""
+"""Ponto de entrada da aplicação."""
 
 import uvicorn
 

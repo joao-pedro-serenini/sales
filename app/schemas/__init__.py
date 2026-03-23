@@ -1,4 +1,4 @@
-"""Schemas package."""
+"""Pacote de schemas."""
 
 from app.schemas.customer import (
     CountResponse,

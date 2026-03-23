@@ -1,4 +1,4 @@
-"""Application factory."""
+"""Fábrica da aplicação."""
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -8,10 +8,10 @@ from app.controllers.customer_controller import router as customer_router
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
+    """Cria e configura a aplicação FastAPI.
 
-    Returns:
-        A configured :class:`fastapi.FastAPI` instance.
+    Retorna:
+        Uma instância configurada de :class:`fastapi.FastAPI`.
     """
     app = FastAPI(title="Sales API")
 

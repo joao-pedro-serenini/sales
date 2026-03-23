@@ -1,4 +1,4 @@
-"""Customer repository — data-access layer."""
+"""Repositório de clientes — camada de acesso a dados."""
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -7,10 +7,10 @@ from app.models.customer import Customer
 
 
 class CustomerRepository:
-    """Handles all direct database interactions for the Customer model.
+    """Gerencia todas as interações diretas com o banco de dados para o modelo Customer.
 
-    This layer abstracts SQLAlchemy queries so that the Service layer
-    never needs to import the session or write raw ORM queries.
+    Esta camada abstrai as consultas SQLAlchemy para que a camada de Service
+    nunca precise importar a sessão ou escrever consultas ORM diretamente.
     """
 
     def __init__(self, session: Session) -> None:
@@ -23,16 +23,16 @@ class CustomerRepository:
         phone: str | None = None,
         address: str | None = None,
     ) -> Customer:
-        """Persist a new customer record.
+        """Persiste um novo registro de cliente.
 
         Args:
-            name: Full name of the customer.
-            email: Unique e-mail address.
-            phone: Optional phone number.
-            address: Optional mailing address.
+            name: Nome completo do cliente.
+            email: Endereço de e-mail único.
+            phone: Número de telefone (opcional).
+            address: Endereço postal (opcional).
 
-        Returns:
-            The newly created :class:`Customer` instance.
+        Retorna:
+            A instância de :class:`Customer` recém-criada.
         """
         customer = Customer(name=name, email=email, phone=phone, address=address)
         self._session.add(customer)
@@ -41,20 +41,20 @@ class CustomerRepository:
         return customer
 
     def find_all(self) -> list[Customer]:
-        """Return all customer records."""
+        """Retorna todos os registros de clientes."""
         return list(self._session.execute(select(Customer)).scalars().all())
 
     def find_by_id(self, customer_id: int) -> Customer | None:
-        """Return a single customer by primary key."""
+        """Retorna um único cliente pela chave primária."""
         return self._session.get(Customer, customer_id)
 
     def find_by_name(self, name: str) -> list[Customer]:
-        """Return customers whose name contains the given string (case-insensitive)."""
+        """Retorna clientes cujo nome contém a string fornecida (sem distinção de maiúsculas/minúsculas)."""
         stmt = select(Customer).where(Customer.name.ilike(f"%{name}%"))
         return list(self._session.execute(stmt).scalars().all())
 
     def count(self) -> int:
-        """Return the total number of customer records."""
+        """Retorna o número total de registros de clientes."""
         result = self._session.execute(select(func.count(Customer.id))).scalar()
         return result if result is not None else 0
 
@@ -66,9 +66,9 @@ class CustomerRepository:
         phone: str | None = None,
         address: str | None = None,
     ) -> Customer:
-        """Apply partial updates to an existing customer record.
+        """Aplica atualizações parciais a um registro de cliente existente.
 
-        Only fields that are explicitly provided (not ``None``) are updated.
+        Apenas campos fornecidos explicitamente (não ``None``) são atualizados.
         """
         if name is not None:
             customer.name = name
@@ -83,6 +83,6 @@ class CustomerRepository:
         return customer
 
     def delete(self, customer: Customer) -> None:
-        """Delete a customer record from the database."""
+        """Exclui um registro de cliente do banco de dados."""
         self._session.delete(customer)
         self._session.commit()

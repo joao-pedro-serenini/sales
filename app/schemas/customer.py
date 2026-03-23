@@ -1,10 +1,10 @@
-"""Customer Pydantic schemas for request and response validation."""
+"""Schemas Pydantic de cliente para validação de requisições e respostas."""
 
 from pydantic import BaseModel, ConfigDict
 
 
 class CustomerCreate(BaseModel):
-    """Schema for creating a new customer."""
+    """Schema para criação de um novo cliente."""
 
     name: str
     email: str
@@ -13,7 +13,7 @@ class CustomerCreate(BaseModel):
 
 
 class CustomerUpdate(BaseModel):
-    """Schema for partially updating an existing customer."""
+    """Schema para atualização parcial de um cliente existente."""
 
     name: str | None = None
     email: str | None = None
@@ -22,7 +22,7 @@ class CustomerUpdate(BaseModel):
 
 
 class CustomerResponse(BaseModel):
-    """Schema returned when reading a customer."""
+    """Schema retornado na leitura de um cliente."""
 
     id: int
     name: str
@@ -34,12 +34,12 @@ class CustomerResponse(BaseModel):
 
 
 class CountResponse(BaseModel):
-    """Schema returned by the count endpoint."""
+    """Schema retornado pelo endpoint de contagem."""
 
     count: int
 
 
 class ErrorResponse(BaseModel):
-    """Schema for error responses."""
+    """Schema para respostas de erro."""
 
     error: str
